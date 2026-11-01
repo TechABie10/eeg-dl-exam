@@ -100,11 +100,28 @@ suspect. (Gaps under about 5 points are within noise at 90 test trials.)
    activity (ICA, or regression on EOG/Fp channels) and reject saccade trials
    before training.
 
+### Limitations
+
+The pipeline is now free of the data leaks I found. The *experiment* is not:
+
+1. **Eye-movement confound (largest).** Frontal electrodes decode as well as
+   the motor strip, and the eye potential reaches Cz (Task 3). So 54.2% is an
+   upper bound on motor-imagery decoding, not a clean measure of it. Next
+   check: remove ocular activity (ICA, or regression on Fp channels) and
+   re-run the motor group.
+2. **Few, overlapping test sets.** Each estimate rests on 90 trials from 2
+   people, and the five seeds reuse subjects (3 and 9 each appear twice), so
+   they are not independent. Leave-two-subjects-out cross-validation would
+   test every subject exactly once.
+3. **Noisy validation.** Two validation subjects make checkpoint selection
+   fragile (seed 1 chose epoch 1).
+4. **Chance test assumes independent trials.** Trials within one person are
+   correlated, so the binomial p-values are somewhat optimistic. A
+   label-permutation test would give the real null distribution.
+
 ---
 
 ## Part 2: Build & Defend
-
-*(results to be filled in)*
 
 **Hypothesis** (written and committed before any model code):
 Fists vs feet is a *spatial* contrast (medial foot area near Cz vs the lateral
@@ -150,6 +167,9 @@ attention runs over: **electrodes instead of timesteps**.
 **Results (best / worst / mean across seeds):**
 *(filled in from `python main.py` once the run completes)*
 
+**Figure:**
+*(filled in once the run completes)*
+
 **How to read these numbers (caveats):**
 - **Final-epoch accuracy is the trusted number.** The starter's `train_model`
   returns the *peak* test accuracy over 40 epochs, which is model selection on
@@ -171,47 +191,23 @@ attention runs over: **electrodes instead of timesteps**.
   OpenMP clash on this Windows/conda setup (see the Part 2 README). It does
   not change the maths, but it is recorded for reproducibility.
 
----
-
-## Limitations of Part 1 (what is still not airtight)
-
-The pipeline is now free of the data leaks I found. The *experiment* is not:
-
-1. **Eye-movement confound (largest).** Frontal electrodes decode as well as
-   the motor strip, and the eye potential reaches Cz (Task 3). So 54.2% is an
-   upper bound on motor-imagery decoding, not a clean measure of it. Next
-   check: remove ocular activity (ICA, or regression on Fp channels) and
-   re-run the motor group.
-2. **Few, overlapping test sets.** Each estimate rests on 90 trials from 2
-   people, and the five seeds reuse subjects (3 and 9 each appear twice), so
-   they are not independent. Leave-two-subjects-out cross-validation would
-   test every subject exactly once.
-3. **Noisy validation.** Two validation subjects make checkpoint selection
-   fragile (seed 1 chose epoch 1).
-4. **Chance test assumes independent trials.** Trials within one person are
-   correlated, so the binomial p-values are somewhat optimistic. A
-   label-permutation test would give the real null distribution.
-
-**Figure:**
-*(filled in once the run completes)*
-
-**Walkthrough prep (short answers):**
-- *Why divide by sqrt(d_k)?* For random q, k with unit-variance entries,
-  q.k has variance d_k, so raw scores grow with head width. Large scores
-  push the softmax to near one-hot, where its gradient is almost zero, so
-  training stalls and attention collapses onto one token. Dividing by
-  sqrt(d_k) keeps the scores' variance about 1 whatever the head size.
-- *Sequence length and attention cost.* Vanilla: 482 tokens, 482^2 = 232,324
-  entries per head per layer, O(T^2 d) about 15M multiply-adds per layer for
-  QK^T alone. Mine: 65 tokens, 4,225 entries, O(C^2 d), independent of trial
+**Notes on the attention design:**
+- *Scaling by sqrt(d_k).* For random q and k with unit-variance entries, q.k
+  has variance d_k, so raw scores grow with head width. Large scores push the
+  softmax towards one-hot, where its gradient is almost zero, so training
+  stalls and attention collapses onto a single token. Dividing by sqrt(d_k)
+  keeps the score variance near 1 for any head size.
+- *Sequence length and cost.* Vanilla: 482 tokens, 482^2 = 232,324 entries per
+  head per layer, O(T^2 d), about 15M multiply-adds per layer for QK^T alone.
+  Electrode tokens: 65 tokens, 4,225 entries, O(C^2 d), independent of trial
   length.
-- *80 subjects instead of 8?* The geometry prior matters most when data is
-  scarce. With 80 subjects the vanilla model could learn spatial structure
-  itself, so the gap should shrink. But electrode tokens with log-power
-  features stay cheaper and more interpretable, and cross-subject variability
-  (Part 1) does not disappear with more subjects.
-- *Is the attention neurophysiologically sensible?* It should be read from the
-  CLS-to-electrode attention weights. Sensible would be weight on C3/C4 vs
-  Cz/FCz. Weight on Fp1/Fpz/Fp2 would mean the model is reusing the vertical
-  eye-movement signal found in Part 1 (reduced, not removed, by Part 2's
-  7-30 Hz filter). Not yet measured; this is the next check.
+- *With more subjects.* The geometry prior matters most when data is scarce.
+  With around 80 subjects the vanilla model could learn spatial structure
+  itself, so the gap should shrink. Electrode tokens with log-power features
+  would stay cheaper and more interpretable, and cross-subject variability
+  (Part 1) does not disappear with more data.
+- *Where the model should attend.* CLS-to-electrode attention weights on
+  C3/C4 vs Cz/FCz would be neurophysiologically sensible. Weight on
+  Fp1/Fpz/Fp2 would mean the model is reusing the vertical eye-movement signal
+  found in Part 1, which Part 2's 7-30 Hz filter reduces but does not remove.
+  These weights have not been measured yet.
