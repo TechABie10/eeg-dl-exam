@@ -33,7 +33,7 @@ seeds 0-2):**
 | 2 | `233ad34` | `data.py` | `TMAX = 5.0` runs past the end of each 125 s run, so MNE silently dropped the last trial of every run (42 of 45 per subject). The last cue is only 4.09-4.59 s before the end; now `TMAX = 4.0`. | **Down** slightly (6.7% of data lost); within noise. | 65.9% (+1.6) |
 | 3 | `782ea84` | `train.py` | `train_test_split` shuffled *trials*, so all 10 subjects were in train and test, despite the "subject-independent" comment. Now `GroupShuffleSplit` on subject ids. | **Up** (wrong): the model was tested on people it had seen. Mean held, but spread widened to 54-74% because bug 5 still masked the loss. | 64.1% |
 | 4 | `ec9a4af` | `train.py` | Z-score mean/std computed on all trials, test included, before the split. Now training trials only. | **Up**, tiny leak. No measurable change. | 64.1% |
-| 5 | `bcc9fff` | `train.py` | Best checkpoint chosen by **test** accuracy; validation printed and ignored. Now chosen on `va_acc`. | **Up** (wrong). Max of 30 noisy test scores. On the fixed code, test-picking gives 62.4% vs 54.2% honest (5 seeds). | 54.2% (5 seeds) |
+| 5 | `bcc9fff` | `train.py` | Best checkpoint chosen by **test** accuracy; validation printed and ignored. Now chosen on `va_acc`. | **Up** (wrong). Max of 30 noisy test scores. On the fixed code, test-picking gives 62.4% vs 54.2% honest (5 seeds). | 56.7% on seeds 0-2 (-7.4); 54.2% on seeds 0-4 |
 | 6 | `902a6fa` | `erd.py` | ERD `BASELINE = (0.0, 0.5)` is *after* the cue and contains the cue-evoked response. Now (-1.5, -0.5) s. | No accuracy change. It pushed true rest to about -10% and shrank the real ERD. | (plot only) |
 
 How I knew each one was wrong:
