@@ -15,7 +15,9 @@ import matplotlib.pyplot as plt
 from data import load_raw, get_events, EVENT_ID, TMIN, TMAX, SUBJECTS
 
 BANDS = {"mu": (8.0, 13.0), "beta": (13.0, 30.0)}
-BASELINE = (0.0, 0.5)   # rest period before the imagery starts (s)
+# Rest period before the cue (s). t=0 is cue onset, so the baseline must sit at
+# negative times; -1.5..-0.5 s avoids anticipation just before the cue.
+BASELINE = (-1.5, -0.5)
 PICKS = ["C3", "Cz", "C4"]
 
 
