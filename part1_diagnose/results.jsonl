@@ -3,3 +3,13 @@
 {"channels": "all", "seed": 2, "best_epoch": 23, "test_acc": 0.7111111111111111, "n_test": 90, "test_subjects": [2, 5]}
 {"channels": "all", "seed": 3, "best_epoch": 13, "test_acc": 0.4777777777777778, "n_test": 90, "test_subjects": [5, 6]}
 {"channels": "all", "seed": 4, "best_epoch": 28, "test_acc": 0.5333333333333333, "n_test": 90, "test_subjects": [4, 9]}
+{"channels": "frontal", "seed": 0, "best_epoch": 11, "test_acc": 0.5222222222222223, "n_test": 90, "test_subjects": [3, 9]}
+{"channels": "frontal", "seed": 1, "best_epoch": 24, "test_acc": 0.5888888888888889, "n_test": 90, "test_subjects": [3, 10]}
+{"channels": "frontal", "seed": 2, "best_epoch": 5, "test_acc": 0.6888888888888889, "n_test": 90, "test_subjects": [2, 5]}
+{"channels": "frontal", "seed": 3, "best_epoch": 17, "test_acc": 0.5222222222222223, "n_test": 90, "test_subjects": [5, 6]}
+{"channels": "frontal", "seed": 4, "best_epoch": 23, "test_acc": 0.6222222222222222, "n_test": 90, "test_subjects": [4, 9]}
+{"channels": "motor", "seed": 0, "best_epoch": 13, "test_acc": 0.5333333333333333, "n_test": 90, "test_subjects": [3, 9]}
+{"channels": "motor", "seed": 1, "best_epoch": 29, "test_acc": 0.5333333333333333, "n_test": 90, "test_subjects": [3, 10]}
+{"channels": "motor", "seed": 2, "best_epoch": 20, "test_acc": 0.6222222222222222, "n_test": 90, "test_subjects": [2, 5]}
+{"channels": "motor", "seed": 3, "best_epoch": 26, "test_acc": 0.6555555555555556, "n_test": 90, "test_subjects": [5, 6]}
+{"channels": "motor", "seed": 4, "best_epoch": 17, "test_acc": 0.5888888888888889, "n_test": 90, "test_subjects": [4, 9]}
