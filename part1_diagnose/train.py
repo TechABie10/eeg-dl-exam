@@ -90,8 +90,8 @@ def main():
             opt.zero_grad(); loss = loss_fn(model(xb), yb); loss.backward(); opt.step()
         va_acc = evaluate(model, X[va], y[va])
         te_acc = evaluate(model, X[te], y[te])
-        if te_acc > best_acc:   # keep the best checkpoint
-            best_acc, best_ep = te_acc, ep
+        if va_acc > best_acc:   # keep the best checkpoint by VALIDATION accuracy
+            best_acc, best_ep = va_acc, ep
             best_state = {k: v.clone() for k, v in model.state_dict().items()}
         print(f"epoch {ep:3d}  loss {loss.item():.3f}  val {va_acc:.3f}  test {te_acc:.3f}")
 
