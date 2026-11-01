@@ -17,7 +17,10 @@ RUNS = [6, 10, 14]
 SUBJECTS = list(range(1, 11))
 
 L_FREQ, H_FREQ = 1.0, 40.0   # broadband filter applied to the continuous recording
-TMIN, TMAX = -2.0, 5.0       # epoch window around the cue (s)
+# Epoch window around the cue (s). TMAX must stay <= ~4.09 s: the last cue of
+# every run is only 4.09-4.59 s before the recording ends, and a longer window
+# makes MNE silently drop that trial (3 of 45 per subject).
+TMIN, TMAX = -2.0, 4.0
 CROP = (0.0, 4.0)            # part of each trial the network sees (s)
 EVENT_ID = dict(hands=1, feet=2)
 
