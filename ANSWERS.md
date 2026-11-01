@@ -164,11 +164,40 @@ attention runs over: **electrodes instead of timesteps**.
   on test, optimistic: the Part 1 bug 5 bias) and the final-epoch accuracy
   (no selection). Final-epoch is the number to trust.
 
-**Results (best / worst / mean across seeds):**
-*(filled in from `python main.py` once the run completes)*
+**Results (best / worst / mean across seeds): PARTIAL RUN.**
+The full `python main.py` run (40 epochs, seeds 0-2) needed about an hour on
+this laptop CPU, far more than the starter's estimate. I stopped it at the
+deadline, 52 minutes in, during the vanilla transformer's third seed.
+`YourModel` was never reached. Everything that finished is below, unedited;
+the console log is in `part2_transformer/run_log.txt`.
+
+| Model | Params | Seeds finished | Peak test acc (best / worst / mean) | Final-epoch test acc (best / worst / mean) |
+| --- | --- | --- | --- | --- |
+| EEGNet (Part 1 config) | 2,738 | 3 of 3 | 62.2 / 58.9 / 61.1% | 61.1 / 54.4 / 58.1% |
+| Vanilla transformer | 135,746 | 2 of 3 | 60.0 / 58.9 / 59.4% | 51.1 / 50.0 / 50.6% |
+| YourModel (electrode tokens) | 20,050 | 0 of 3 | not reached | not reached |
+
+What the finished runs do show:
+- **The vanilla transformer ends at chance.** Its final-epoch accuracy is
+  50.0% and 51.1%, while its peak was 59-60% at some epoch. That 9-point
+  peak-to-final gap means the peak was selection luck on the test set, not a
+  learned, transferable representation. That is exactly the weakness the
+  hypothesis targets: 136k parameters and a 482x482 attention map, trained on
+  360 trials from 8 people.
+- **EEGNet keeps most of its peak.** Final 58.1% vs peak 61.1%, a 3-point gap.
+  Its conv priors (temporal filters, then depthwise spatial filters) give a
+  representation that partly transfers to unseen subjects 9 and 10, though no
+  single seed's final accuracy clears the 60% (54/90) chance threshold.
+- **The hypothesis is untested.** Whether electrode tokens with 3D position
+  encoding close the gap between the vanilla model (about 50%) and EEGNet
+  (about 58%) is the open question. The next step is simply to finish the
+  run: `python main.py` reproduces everything above and then trains
+  `YourModel`.
 
 **Figure:**
-*(filled in once the run completes)*
+Not produced. `main.py` draws the t-SNE of `YourModel`'s test embeddings only
+after all models finish, which this run never reached. The `figure.png` left
+over in the folder came from a 2-epoch smoke test, so it is not submitted.
 
 **How to read these numbers (caveats):**
 - **Final-epoch accuracy is the trusted number.** The starter's `train_model`

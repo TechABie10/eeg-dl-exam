@@ -1,0 +1,17 @@
+device: cpu
+
+loading data (first run downloads ~50 MB)...
+train (360, 64, 481)  test (90, 64, 481)  (class balance train 0.51 / test 0.49)
+
+=== Baseline 1: EEGNet (conv priors, Part 1 config) ===
+params: 2,738
+  seed 0: peak test acc 0.622  final-epoch test acc 0.544
+  seed 1: peak test acc 0.589  final-epoch test acc 0.589
+  seed 2: peak test acc 0.622  final-epoch test acc 0.611
+EEGNet: peak best 0.622 worst 0.589 mean 0.611 | final best 0.611 worst 0.544 mean 0.581 std 0.028
+
+=== Baseline 2: vanilla transformer (no EEG prior) ===
+params: 135,746
+  seed 0: peak test acc 0.600  final-epoch test acc 0.500
+  seed 1: peak test acc 0.589  final-epoch test acc 0.511
+ERROR conda.cli.main_run:execute(125): `conda run python -u main.py` failed. (See above for error)
