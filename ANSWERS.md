@@ -44,6 +44,21 @@ How I knew each one was wrong:
 5. Seed 0's log: the validation peak at epoch 14 had 61.9% test, but 66.7% was reported.
 6. The buggy plot had a +0.25 s spike inside the baseline window and pre-cue rest at about -10%.
 
+**Why each fix moved the result, with confidence grades.** Grades are my
+confidence in the explanation, not a clinical evidence standard:
+**A** = well-established mechanism that fits the size of the change;
+**B** = plausible mechanism, not directly tested here;
+**C** = the change is within noise, so no mechanism is claimed.
+
+| # | Most likely cause of the change | Grade |
+| --- | --- | --- |
+| 1 | Executed movement drives sensorimotor cortex harder than imagery (motor output plus sensory feedback from the moving limbs gives larger, more consistent mu/beta ERD), and adds non-brain class signal: forearm/neck/jaw EMG at 20-40 Hz inside the 1-40 Hz band, and electrode-shift artefacts. | A |
+| 2 | 7% more data and a slightly different 90-trial test set; one standard error is about 5 points. | C |
+| 3 | People differ in skull thickness, cortical folding (which sets the scalp topography), individual mu peak frequency, cap placement and imagery strategy, so accuracy depends on who is held out. The mean held only because bug 5 still masked the loss. | B |
+| 4 | Channel statistics pooled over 6-8 people barely change when two are left out. | C |
+| 5 | Statistical: the best of 30 noisy test scores is a lucky draw; selecting on validation removes it. | A |
+| 6 | The 0-0.5 s window contained the visual evoked response to the cue (P1/N1, about 100-200 ms, volume-conducted to central sites) and probably the saccade to the target, inflating the reference power. | A |
+
 ### Task 2: ERD (`erd_mu.png`)
 
 After the fixes, pre-cue rest sits at 0%, and hands imagery produces sustained
@@ -57,6 +72,11 @@ sources are farther from the scalp and tangentially oriented, and the left and
 right foot areas face each other, so their fields partly cancel at Cz. (The
 brief positive spike at about +0.25 s at every site is the phase-locked
 response to the visual cue, not imagery.)
+
+Confidence grades: hand-area ERD at C3/C4 matching the somatotopy, **A**;
+the foot-area depth and orientation explaining the weak Cz difference, **B**
+(the anatomy is established, but its effect was not measured here); the
++0.25 s spike being a cue-evoked response, **A**.
 
 ### Task 3: What is the model using?
 
@@ -80,6 +100,12 @@ subjects: the positive cornea moves towards the forehead when looking up. The
 same-sign shift also reaches Cz (+20.8 uV, 10/10 subjects), so even the motor
 group is partly contaminated. Frontalis EMG from looking up is a secondary
 suspect. (Gaps under about 5 points are within noise at 90 test trials.)
+
+Confidence grades: vertical EOG as the main non-brain carrier, **A** (the
+polarity, latency, amplitude and frontal maximum all match the cornea-retina
+dipole); frontalis EMG contributing, **B** (not tested); eye potential
+contaminating the motor group via Cz, **B** (the shift was measured, but its
+contribution to the motor group's accuracy was not).
 
 ### Task 4: Short answers
 
