@@ -72,10 +72,8 @@ lucky spike you can't explain.
 
 ## Your write-up (fill this in)
 
-**Hypothesis:**
-
-**What I changed and why:**
-
-**Results (best / worst / mean across seeds):**
-
-**Figure:**
+The full write-up (hypothesis, what changed and why, best/worst/mean results
+for both runs, the figure, and caveats) is in [`../ANSWERS.md`](../ANSWERS.md),
+Part 2. Reproduce with `python main.py` (full 40-epoch protocol), or the
+reduced run reported there with
+`python main.py --models eegnet yours --epochs 10`.

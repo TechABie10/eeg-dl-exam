@@ -1,0 +1,23 @@
+device: cpu
+
+loading data (first run downloads ~50 MB)...
+train (360, 64, 481)  test (90, 64, 481)  (class balance train 0.51 / test 0.49)
+
+=== Baseline 1: EEGNet (conv priors, Part 1 config) ===
+params: 2,738
+  seed 0: peak test acc 0.533  final-epoch test acc 0.500
+  seed 1: peak test acc 0.511  final-epoch test acc 0.456
+  seed 2: peak test acc 0.567  final-epoch test acc 0.456
+EEGNet: peak best 0.567 worst 0.511 mean 0.537 | final best 0.500 worst 0.456 mean 0.470 std 0.021
+
+=== YOUR MODEL: electrode tokens + 3D position encoding ===
+params: 20,050
+  seed 0: peak test acc 0.567  final-epoch test acc 0.544
+  seed 1: peak test acc 0.556  final-epoch test acc 0.511
+  seed 2: peak test acc 0.556  final-epoch test acc 0.478
+your model: peak best 0.567 worst 0.556 mean 0.559 | final best 0.544 worst 0.478 mean 0.511 std 0.027
+
+saving figure...
+  saved figure.png
+
+done. Report best AND worst in the README — no cherry-picking.

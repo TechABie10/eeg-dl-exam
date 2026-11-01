@@ -190,40 +190,66 @@ attention runs over: **electrodes instead of timesteps**.
   on test, optimistic: the Part 1 bug 5 bias) and the final-epoch accuracy
   (no selection). Final-epoch is the number to trust.
 
-**Results (best / worst / mean across seeds): PARTIAL RUN.**
-The full `python main.py` run (40 epochs, seeds 0-2) needed about an hour on
-this laptop CPU, far more than the starter's estimate. I stopped it at the
-deadline, 52 minutes in, during the vanilla transformer's third seed.
-`YourModel` was never reached. Everything that finished is below, unedited;
-the console log is in `part2_transformer/run_log.txt`.
+**Results (best / worst / mean across seeds).** Two runs, both reported unedited.
 
-| Model | Params | Seeds finished | Peak test acc (best / worst / mean) | Final-epoch test acc (best / worst / mean) |
-| --- | --- | --- | --- | --- |
-| EEGNet (Part 1 config) | 2,738 | 3 of 3 | 62.2 / 58.9 / 61.1% | 61.1 / 54.4 / 58.1% |
-| Vanilla transformer | 135,746 | 2 of 3 | 60.0 / 58.9 / 59.4% | 51.1 / 50.0 / 50.6% |
-| YourModel (electrode tokens) | 20,050 | 0 of 3 | not reached | not reached |
+*Run A: full budget, stopped.* `python main.py` (40 epochs, seeds 0-2) needed
+about an hour on this laptop CPU, far beyond the starter's estimate. I
+stopped it after 52 minutes, during the vanilla transformer's third seed,
+before `YourModel` started. Log: `part2_transformer/run_log.txt`.
 
-What the finished runs do show:
-- **The vanilla transformer ends at chance.** Its final-epoch accuracy is
-  50.0% and 51.1%, while its peak was 59-60% at some epoch. That 9-point
-  peak-to-final gap means the peak was selection luck on the test set, not a
-  learned, transferable representation. That is exactly the weakness the
-  hypothesis targets: 136k parameters and a 482x482 attention map, trained on
-  360 trials from 8 people.
-- **EEGNet keeps most of its peak.** Final 58.1% vs peak 61.1%, a 3-point gap.
-  Its conv priors (temporal filters, then depthwise spatial filters) give a
-  representation that partly transfers to unseen subjects 9 and 10, though no
-  single seed's final accuracy clears the 60% (54/90) chance threshold.
-- **The hypothesis is untested.** Whether electrode tokens with 3D position
-  encoding close the gap between the vanilla model (about 50%) and EEGNet
-  (about 58%) is the open question. The next step is simply to finish the
-  run: `python main.py` reproduces everything above and then trains
-  `YourModel`.
+*Run B: reduced budget, complete.*
+`python main.py --models eegnet yours --epochs 10` (seeds 0-2). It finished
+in about 10 minutes. Log: `part2_transformer/run_log_10ep.txt`.
 
-**Figure:**
-Not produced. `main.py` draws the t-SNE of `YourModel`'s test embeddings only
-after all models finish, which this run never reached. The `figure.png` left
-over in the folder came from a 2-epoch smoke test, so it is not submitted.
+| Model | Params | Run, epochs | Seeds | Peak test acc (best / worst / mean) | Final-epoch test acc (best / worst / mean) |
+| --- | --- | --- | --- | --- | --- |
+| EEGNet (Part 1 config) | 2,738 | A, 40 | 3 of 3 | 62.2 / 58.9 / 61.1% | 61.1 / 54.4 / **58.1%** |
+| Vanilla transformer | 135,746 | A, 40 | 2 of 3 | 60.0 / 58.9 / 59.4% | 51.1 / 50.0 / **50.6%** |
+| EEGNet (Part 1 config) | 2,738 | B, 10 | 3 of 3 | 56.7 / 51.1 / 53.7% | 50.0 / 45.6 / **47.0%** |
+| YourModel (electrode tokens) | 20,050 | B, 10 | 3 of 3 | 56.7 / 55.6 / 55.9% | 54.4 / 47.8 / **51.1%** |
+
+**Why the reduced run, and what it costs.** The required deliverable is
+`python main.py` with its defaults: 40 epochs, all three models. That run
+did not fit the time available on a CPU: the vanilla transformer's 482x482
+attention alone took most of the 52 minutes. Rather than submit no number for
+`YourModel`, I added a `--models` flag (commit `daa4eb4`, defaults unchanged)
+and ran EEGNet and `YourModel` at 10 epochs, under the same seeds, split and
+harness. Trade-offs:
+- **Undertraining.** Ten epochs is too few for these models. EEGNet's
+  final-epoch accuracy falls from 58.1% at 40 epochs to 47.0% at 10, so the
+  reduced budget clearly understates what a model reaches. `YourModel` at 10
+  epochs is a lower bound on its 40-epoch performance, not an estimate of it.
+- **Mismatched comparison with the vanilla model.** The vanilla transformer
+  has only 40-epoch numbers (2 seeds); it was not re-run at 10 epochs, so
+  comparing it with `YourModel` mixes budgets. The only like-for-like
+  comparison is EEGNet vs `YourModel` within Run B.
+- **Possible change in ranking.** Models converge at different rates. A
+  model that is ahead at 10 epochs may not be ahead at 40, so Run B cannot
+  say which model is better at the full budget.
+- **Not the default command.** Run B's numbers come from a non-default
+  invocation (shown above). `python main.py` with no flags still runs the
+  full 40-epoch protocol and would reproduce Run A, then train `YourModel`.
+
+What the numbers show, within those limits:
+- **The vanilla transformer ends at chance** (final 50.0% and 51.1%) although
+  it peaked at 59-60%. That 9-point gap means the peak was selection luck on
+  the test set, not a representation that transfers: the weakness the
+  hypothesis targets.
+- **At the same 10-epoch budget, `YourModel` edges EEGNet** on final-epoch
+  accuracy (51.1% vs 47.0%) and has a tighter peak range (55.6-56.7% vs
+  51.1-56.7%). But the 4-point gap is inside one standard error (about 5
+  points at 90 trials), and neither model clears the 60% chance threshold.
+  This is weak, budget-limited evidence, not support for the hypothesis.
+- **Hypothesis status: not confirmed, not refuted.** The test that settles it
+  is `YourModel` at 40 epochs next to EEGNet's 58.1% and the vanilla model's
+  50.6%.
+
+**Figure** (`part2_transformer/figure.png`, from Run B: `YourModel`, seed 0,
+10 epochs): a t-SNE of the CLS embeddings for the 90 test trials from unseen
+subjects 9 and 10 shows fists and feet thoroughly intermixed, with no class
+clusters. That matches the near-chance 51% final accuracy. The small
+same-colour clumps may reflect trial or subject structure rather than class;
+I did not colour by subject to check.
 
 **How to read these numbers (caveats):**
 - **Final-epoch accuracy is the trusted number.** The starter's `train_model`
