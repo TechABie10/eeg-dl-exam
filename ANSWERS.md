@@ -116,7 +116,102 @@ vanilla model overfits on 8 subjects. I expect it to beat the vanilla
 transformer and to cut seed variance more than it raises peak accuracy.
 
 **What I changed and why:**
+`YourModel` (in `part2_transformer/main.py`, commit `baff821`) swaps the axis
+attention runs over: **electrodes instead of timesteps**.
+
+- *Weakness targeted.* The vanilla transformer makes one token per timestep
+  (481 + CLS = 482 tokens) and squeezes all 64 electrodes into each token
+  through one linear layer. Attention therefore spends its capacity relating
+  time points: a 482x482 map per head, 232k entries, x4 heads x3 layers. Yet
+  the class information here is a *spatial* pattern of band power (medial Cz
+  vs lateral C3/C4, plus the frontal eye signal from Part 1). The vanilla
+  model has to discover that pattern through a single projection, from 8
+  subjects, with no notion of which electrodes are neighbours.
+- *The bias.* (1) A temporal filter bank shared by every electrode
+  (16 x 65-tap filters, about 0.4 s) turns each electrode's 3 s signal into
+  16 log band-power features. Power is what ERD changes, and it does not
+  depend on exact timing, which varies across people. (2) Each electrode
+  becomes one token, and its positional encoding is an MLP of its real
+  (x, y, z) scalp coordinates (`get_channel_positions()`), so attention can
+  learn "front vs back" and "midline vs lateral" as geometry rather than as
+  64 arbitrary IDs. (3) Two transformer layers attend across the 64
+  electrodes; a CLS token reads out.
+- *What it costs and buys.* Sequence length 65 instead of 482, so the
+  attention map is 65^2 = 4,225 entries per head, 55x smaller. Parameters:
+  20,050 vs 135,746 (EEGNet: 2,738). The compute moves from attention into the
+  filter bank (64 x 16 x 481 x 65, about 32M multiply-adds per trial), which
+  is why it trains no faster on CPU.
+- *What I kept honest.* `models.py`, `train.py` and `data.py` are unchanged.
+  EEGNet runs with the Part 1 configuration (kern=80, dropout 0.5) across the
+  same seeds. Every model prints both the harness's peak test accuracy (picked
+  on test, optimistic: the Part 1 bug 5 bias) and the final-epoch accuracy
+  (no selection). Final-epoch is the number to trust.
 
 **Results (best / worst / mean across seeds):**
+*(filled in from `python main.py` once the run completes)*
+
+**How to read these numbers (caveats):**
+- **Final-epoch accuracy is the trusted number.** The starter's `train_model`
+  returns the *peak* test accuracy over 40 epochs, which is model selection on
+  the test set (the bias fixed in Part 1, bug 5). I did not edit the harness,
+  but every model also reports its final-epoch accuracy, which involves no
+  selection. The peak is shown only as an optimistic upper bound.
+- **Seeds vary initialisation only.** The split is fixed (train subjects 1-8,
+  test 9-10), so best/worst across seeds measures training noise, not how
+  much the result depends on which people are tested. That dependence was
+  large in Part 1 (47-71% across subject pairs).
+- **Small test set.** 90 trials from 2 people: one standard error is about
+  5 points, and p<0.05 vs chance needs 54/90 (60%). Gaps of a few points
+  between models are not evidence either way.
+- **The eye confound may persist.** Part 2's 7-30 Hz filter removes most of the
+  slow vertical-EOG shift found in Part 1, but saccades also produce sharp,
+  broadband spike potentials. I have not measured how much eye signal remains,
+  so any model's accuracy is an upper bound on motor-imagery decoding.
+- **Environment.** Runs used `KMP_DUPLICATE_LIB_OK=TRUE` to work around an
+  OpenMP clash on this Windows/conda setup (see the Part 2 README). It does
+  not change the maths, but it is recorded for reproducibility.
+
+---
+
+## Limitations of Part 1 (what is still not airtight)
+
+The pipeline is now free of the data leaks I found. The *experiment* is not:
+
+1. **Eye-movement confound (largest).** Frontal electrodes decode as well as
+   the motor strip, and the eye potential reaches Cz (Task 3). So 54.2% is an
+   upper bound on motor-imagery decoding, not a clean measure of it. Next
+   check: remove ocular activity (ICA, or regression on Fp channels) and
+   re-run the motor group.
+2. **Few, overlapping test sets.** Each estimate rests on 90 trials from 2
+   people, and the five seeds reuse subjects (3 and 9 each appear twice), so
+   they are not independent. Leave-two-subjects-out cross-validation would
+   test every subject exactly once.
+3. **Noisy validation.** Two validation subjects make checkpoint selection
+   fragile (seed 1 chose epoch 1).
+4. **Chance test assumes independent trials.** Trials within one person are
+   correlated, so the binomial p-values are somewhat optimistic. A
+   label-permutation test would give the real null distribution.
 
 **Figure:**
+*(filled in once the run completes)*
+
+**Walkthrough prep (short answers):**
+- *Why divide by sqrt(d_k)?* For random q, k with unit-variance entries,
+  q.k has variance d_k, so raw scores grow with head width. Large scores
+  push the softmax to near one-hot, where its gradient is almost zero, so
+  training stalls and attention collapses onto one token. Dividing by
+  sqrt(d_k) keeps the scores' variance about 1 whatever the head size.
+- *Sequence length and attention cost.* Vanilla: 482 tokens, 482^2 = 232,324
+  entries per head per layer, O(T^2 d) about 15M multiply-adds per layer for
+  QK^T alone. Mine: 65 tokens, 4,225 entries, O(C^2 d), independent of trial
+  length.
+- *80 subjects instead of 8?* The geometry prior matters most when data is
+  scarce. With 80 subjects the vanilla model could learn spatial structure
+  itself, so the gap should shrink. But electrode tokens with log-power
+  features stay cheaper and more interpretable, and cross-subject variability
+  (Part 1) does not disappear with more subjects.
+- *Is the attention neurophysiologically sensible?* It should be read from the
+  CLS-to-electrode attention weights. Sensible would be weight on C3/C4 vs
+  Cz/FCz. Weight on Fp1/Fpz/Fp2 would mean the model is reusing the vertical
+  eye-movement signal found in Part 1 (reduced, not removed, by Part 2's
+  7-30 Hz filter). Not yet measured; this is the next check.

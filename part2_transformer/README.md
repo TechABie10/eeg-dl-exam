@@ -15,6 +15,13 @@ python main.py      # runs both baselines + the starter YourModel + saves figure
 Everything runs on CPU in well under a minute per model. The first run
 downloads the PhysioNet EEGBCI data and caches it.
 
+> **Windows + conda note.** On this machine (conda-forge numpy/scipy plus pip
+> torch), MNE's filtering crashed with `OMP: Error #15` (two OpenMP runtimes
+> loaded). The numbers in this repo were produced with the standard workaround,
+> set only in the shell: `set KMP_DUPLICATE_LIB_OK=TRUE` (cmd) or
+> `export KMP_DUPLICATE_LIB_OK=TRUE` (bash). On a clean pip-only environment it
+> is not needed.
+
 ## The task
 
 **Both fists vs. both feet** (imagined movement), cross-subject: train on
