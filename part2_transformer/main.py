@@ -146,6 +146,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--epochs", type=int, default=40)
     ap.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
+    ap.add_argument("--models", nargs="+", default=["eegnet", "vanilla", "yours"],
+                    choices=["eegnet", "vanilla", "yours"],
+                    help="subset of models to run (default: all three)")
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -162,32 +165,35 @@ def main():
 
     # EEGNet with the configuration validated in Part 1 (kern=80 = 0.5 s at
     # 160 Hz, dropout 0.5), run across the same seeds as the transformers.
-    print("\n=== Baseline 1: EEGNet (conv priors, Part 1 config) ===")
-    print(f"params: {count_params(EEGNet(C, T, kern=80, p=0.5)):,}")
-    pk_e, fi_e = run_across_seeds(lambda: EEGNet(C, T, kern=80, p=0.5),
-                                  Xtr, ytr, Xte, yte, args.seeds, device,
-                                  epochs=args.epochs)
-    summarise("EEGNet", pk_e, fi_e)
+    if "eegnet" in args.models:
+        print("\n=== Baseline 1: EEGNet (conv priors, Part 1 config) ===")
+        print(f"params: {count_params(EEGNet(C, T, kern=80, p=0.5)):,}")
+        pk_e, fi_e = run_across_seeds(lambda: EEGNet(C, T, kern=80, p=0.5),
+                                      Xtr, ytr, Xte, yte, args.seeds, device,
+                                      epochs=args.epochs)
+        summarise("EEGNet", pk_e, fi_e)
 
-    print("\n=== Baseline 2: vanilla transformer (no EEG prior) ===")
-    print(f"params: {count_params(VanillaEEGTransformer(C, T)):,}")
-    pk_v, fi_v = run_across_seeds(lambda: VanillaEEGTransformer(C, T),
-                                  Xtr, ytr, Xte, yte, args.seeds, device,
-                                  epochs=args.epochs)
-    summarise("vanilla transformer", pk_v, fi_v)
+    if "vanilla" in args.models:
+        print("\n=== Baseline 2: vanilla transformer (no EEG prior) ===")
+        print(f"params: {count_params(VanillaEEGTransformer(C, T)):,}")
+        pk_v, fi_v = run_across_seeds(lambda: VanillaEEGTransformer(C, T),
+                                      Xtr, ytr, Xte, yte, args.seeds, device,
+                                      epochs=args.epochs)
+        summarise("vanilla transformer", pk_v, fi_v)
 
-    print("\n=== YOUR MODEL: electrode tokens + 3D position encoding ===")
-    print(f"params: {count_params(YourModel(C, T, pos=pos)):,}")
-    pk_y, fi_y = run_across_seeds(lambda: YourModel(C, T, pos=pos),
-                                  Xtr, ytr, Xte, yte, args.seeds, device,
-                                  epochs=args.epochs)
-    summarise("your model", pk_y, fi_y)
+    if "yours" in args.models:
+        print("\n=== YOUR MODEL: electrode tokens + 3D position encoding ===")
+        print(f"params: {count_params(YourModel(C, T, pos=pos)):,}")
+        pk_y, fi_y = run_across_seeds(lambda: YourModel(C, T, pos=pos),
+                                      Xtr, ytr, Xte, yte, args.seeds, device,
+                                      epochs=args.epochs)
+        summarise("your model", pk_y, fi_y)
 
-    print("\nsaving figure...")
-    set_seed(0)
-    ym = YourModel(C, T, pos=pos)
-    train_model(ym, Xtr, ytr, Xte, yte, epochs=args.epochs, device=device)
-    save_figure(ym, Xte, yte, device)
+        print("\nsaving figure...")
+        set_seed(0)
+        ym = YourModel(C, T, pos=pos)
+        train_model(ym, Xtr, ytr, Xte, yte, epochs=args.epochs, device=device)
+        save_figure(ym, Xte, yte, device)
 
     print("\ndone. Report best AND worst in the README — no cherry-picking.")
 
