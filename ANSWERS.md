@@ -31,7 +31,7 @@ seeds 0-2):**
 | --- | --- | --- | --- | --- | --- |
 | 1 | `dc60873` | `data.py` | `RUNS = [5, 9, 13]` are *executed* fists/feet runs; imagery is 6, 10, 14. | **Up** (wrong). Real movement gives stronger ERD plus EMG and movement artefacts. | 64.3% (-9.1) |
 | 2 | `233ad34` | `data.py` | `TMAX = 5.0` runs past the end of each 125 s run, so MNE silently dropped the last trial of every run (42 of 45 per subject). The last cue is only 4.09-4.59 s before the end; now `TMAX = 4.0`. | **Down** slightly (6.7% of data lost); within noise. | 65.9% (+1.6) |
-| 3 | `782ea84` | `train.py` | `train_test_split` shuffled *trials*, so all 10 subjects were in train and test, despite the "subject-independent" comment. Now `GroupShuffleSplit` on subject ids. | **Up** (wrong): the model was tested on people it had seen. Mean held, but spread widened to 54-74% because bug 5 still masked the loss. | 64.1% |
+| 3 | `782ea84` | `train.py` | `train_test_split` shuffled *trials*, so all 10 subjects were in train and test, despite the "subject-independent" comment. Now `GroupShuffleSplit` on subject ids. | **Up** (wrong): the model was tested on people it had seen. Mean held, but spread widened to 54-74%; bug 5 (test-set checkpointing) was probably still masking part of the loss. | 64.1% |
 | 4 | `ec9a4af` | `train.py` | Z-score mean/std computed on all trials, test included, before the split. Now training trials only. | **Up**, tiny leak. No measurable change. | 64.1% |
 | 5 | `bcc9fff` | `train.py` | Best checkpoint chosen by **test** accuracy; validation printed and ignored. Now chosen on `va_acc`. | **Up** (wrong). Max of 30 noisy test scores. On the fixed code, test-picking gives 62.4% vs 54.2% honest (5 seeds). | 56.7% on seeds 0-2 (-7.4); 54.2% on seeds 0-4 |
 | 6 | `902a6fa` | `erd.py` | ERD `BASELINE = (0.0, 0.5)` is *after* the cue and contains the cue-evoked response. Now (-1.5, -0.5) s. | No accuracy change. It pushed true rest to about -10% and shrank the real ERD. | (plot only) |
@@ -54,7 +54,7 @@ confidence in the explanation, not a clinical evidence standard:
 | --- | --- | --- |
 | 1 | Executed movement drives sensorimotor cortex harder than imagery (motor output plus sensory feedback from the moving limbs gives larger, more consistent mu/beta ERD), and adds non-brain class signal: forearm/neck/jaw EMG at 20-40 Hz inside the 1-40 Hz band, and electrode-shift artefacts. | A |
 | 2 | 7% more data and a slightly different 90-trial test set; one standard error is about 5 points. | C |
-| 3 | People differ in skull thickness, cortical folding (which sets the scalp topography), individual mu peak frequency, cap placement and imagery strategy, so accuracy depends on who is held out. The mean held only because bug 5 still masked the loss. | B |
+| 3 | People differ in skull thickness, cortical folding (which sets the scalp topography), individual mu peak frequency, cap placement and imagery strategy, so accuracy depends on who is held out. The mean probably held partly because bug 5 was still masking the loss. | B |
 | 4 | Channel statistics pooled over 6-8 people barely change when two are left out. | C |
 | 5 | Statistical: the best of 30 noisy test scores is a lucky draw; selecting on validation removes it. | A |
 | 6 | The 0-0.5 s window contained the visual evoked response to the cue (P1/N1, about 100-200 ms, volume-conducted to central sites) and probably the saccade to the target, inflating the reference power. | A |
@@ -90,14 +90,18 @@ group (FC3-FC4, C3-C4, CP3-CP4). Same five subject splits:
 | frontal (8) | 52.2 / 58.9 / 68.9 / 52.2 / 62.2% | 58.9% |
 
 Eight frontal electrodes with no motor cortex under them decode fists vs feet
-as well as the motor strip and better than all channels, so the model can reach
-its accuracy without any motor-imagery signal. The likely non-brain carrier is
+as well as the motor strip (paired difference over the 5 shared splits:
++0.2 points, p = 0.95), so the model can reach its accuracy without any
+motor-imagery signal. Frontal is numerically above all 64 channels (+4.7
+points), but that difference is not significant (paired t-test p = 0.16, and
+the splits share subjects), so I do not claim frontal is better. The likely non-brain carrier is
 vertical electro-oculogram (EOG): the fists target is at the top of the screen
 and the feet target at the bottom, so the eyes move up or down. Cue-locked
-forehead averages (0.1-15 Hz) confirm it. From about 0.2 s (saccade latency),
-Fp1/Fpz/Fp2 swing about +30 uV more positive for fists than feet, in 9 of 10
-subjects: the positive cornea moves towards the forehead when looking up. The
-same-sign shift also reaches Cz (+20.8 uV, 10/10 subjects), so even the motor
+forehead averages (0.1-15 Hz) support it. From about 0.2 s (saccade latency),
+Fp1/Fpz/Fp2 swing about +30 uV more positive for fists than feet (0.2-1.5 s
+window), with the same sign in 9 of 10 subjects (sign test p = 0.02; the
+t-test on amplitudes gives p = 0.07 because one subject is a large outlier): the positive cornea moves towards the forehead when looking up. The
+same-sign shift also reaches Cz (+20.8 uV, 10/10 subjects, t-test p = 0.01), so even the motor
 group is partly contaminated. Frontalis EMG from looking up is a secondary
 suspect. (Gaps under about 5 points are within noise at 90 test trials.)
 
@@ -217,8 +221,11 @@ and ran EEGNet and `YourModel` at 10 epochs, under the same seeds, split and
 harness. Trade-offs:
 - **Undertraining.** Ten epochs is too few for these models. EEGNet's
   final-epoch accuracy falls from 58.1% at 40 epochs to 47.0% at 10, so the
-  reduced budget clearly understates what a model reaches. `YourModel` at 10
-  epochs is a lower bound on its 40-epoch performance, not an estimate of it.
+  reduced budget understates what EEGNet reaches (lower at 10 epochs in all
+  3 seeds, by 4.4 to 15.5 points). `YourModel` at 10 epochs probably also
+  understates its 40-epoch performance, but this is not guaranteed: longer
+  training can also overfit, as the vanilla model's fall from peak to final
+  shows.
 - **Mismatched comparison with the vanilla model.** The vanilla transformer
   has only 40-epoch numbers (2 seeds); it was not re-run at 10 epochs, so
   comparing it with `YourModel` mixes budgets. The only like-for-like
@@ -232,14 +239,23 @@ harness. Trade-offs:
 
 What the numbers show, within those limits:
 - **The vanilla transformer ends at chance** (final 50.0% and 51.1%) although
-  it peaked at 59-60%. That 9-point gap means the peak was selection luck on
-  the test set, not a representation that transfers: the weakness the
+  it peaked at 59-60%. A peak that high is what selection alone produces: for
+  a model at exactly chance, the best of 40 independent evaluations on 90
+  trials has a median of 61.1% (simulation; real epochs are correlated, so
+  somewhat lower). So the peak is consistent with selection luck on the test
+  set, not with a representation that transfers, which is the weakness the
   hypothesis targets.
+- **EEGNet at 40 epochs is the only model with a seed above chance at its
+  final epoch:** seed 2 at 61.1% (55/90, p = 0.02). The other two seeds
+  (54.4%, 58.9%) are not significant individually.
 - **At the same 10-epoch budget, `YourModel` edges EEGNet** on final-epoch
-  accuracy (51.1% vs 47.0%) and has a tighter peak range (55.6-56.7% vs
-  51.1-56.7%). But the 4-point gap is inside one standard error (about 5
-  points at 90 trials), and neither model clears the 60% chance threshold.
-  This is weak, budget-limited evidence, not support for the hypothesis.
+  accuracy (51.1% vs 47.0%). The gap is positive in all 3 seeds (+2.2 to
+  +5.5 points; paired t-test p = 0.05), so it is consistent across
+  initialisations. But all three seeds share one fixed 90-trial test set from
+  2 people, whose own sampling error is about 5.3 points, and no seed of
+  either model clears the 60% chance threshold. With 3 seeds, I make no
+  claim about seed variance either. This is weak, budget-limited evidence,
+  not support for the hypothesis.
 - **Hypothesis status: not confirmed, not refuted.** The test that settles it
   is `YourModel` at 40 epochs next to EEGNet's 58.1% and the vanilla model's
   50.6%.
