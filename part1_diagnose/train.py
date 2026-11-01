@@ -8,7 +8,7 @@ import json
 import numpy as np
 import torch
 import torch.nn as nn
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupShuffleSplit
 
 from data import build_dataset, SUBJECTS
 from model import EEGNet, count_params
@@ -59,11 +59,17 @@ def main():
     std = X.std(axis=(0, 2), keepdims=True) + 1e-6
     X = ((X - mean) / std).astype(np.float32)
 
-    # Subject-independent evaluation: hold out 20% for test, then 20% of the
-    # remainder for validation.
+    # Subject-independent evaluation: hold out 20% of SUBJECTS for test, then
+    # 20% of the remaining subjects for validation. Splitting by `groups`
+    # guarantees no subject contributes trials to more than one set.
     idx = np.arange(len(y))
-    tr, te = train_test_split(idx, test_size=0.2, stratify=y, random_state=args.seed)
-    tr, va = train_test_split(tr, test_size=0.2, stratify=y[tr], random_state=args.seed)
+    gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=args.seed)
+    tr, te = next(gss.split(idx, y, groups))
+    tr_rel, va_rel = next(gss.split(tr, y[tr], groups[tr]))
+    tr, va = tr[tr_rel], tr[va_rel]
+    test_subjects = sorted(int(s) for s in np.unique(groups[te]))
+    print(f"test subjects {test_subjects}, "
+          f"val subjects {sorted(int(s) for s in np.unique(groups[va]))}")
 
     n_ch, n_t = X.shape[1], X.shape[2]
     model = EEGNet(n_ch, n_t)
@@ -90,7 +96,8 @@ def main():
 
     model.load_state_dict(best_state)
     result = dict(channels=args.channels, seed=args.seed, best_epoch=best_ep,
-                  test_acc=evaluate(model, X[te], y[te]), n_test=len(te))
+                  test_acc=evaluate(model, X[te], y[te]), n_test=len(te),
+                  test_subjects=test_subjects)
     print(json.dumps(result))
     with open("results.jsonl", "a") as f:
         f.write(json.dumps(result) + "\n")
