@@ -104,9 +104,16 @@ suspect. (Gaps under about 5 points are within noise at 90 test trials.)
 
 ## Part 2: Build & Defend
 
-*(to be filled in)*
+*(results to be filled in)*
 
-**Hypothesis:**
+**Hypothesis** (written and committed before any model code):
+Fists vs feet is a *spatial* contrast (medial foot area near Cz vs the lateral
+hand areas near C3/C4, which is anterior-posterior and medial-lateral, not
+left-right). So attention over **electrode tokens**, each carrying learned
+band-power features plus an encoding of its 3D scalp position, will beat
+per-timestep attention. It removes the 481x481 temporal attention surface the
+vanilla model overfits on 8 subjects. I expect it to beat the vanilla
+transformer and to cut seed variance more than it raises peak accuracy.
 
 **What I changed and why:**
 
